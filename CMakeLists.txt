@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 
-project(MinecraftConsoles LANGUAGES C CXX)
+project(MinecraftConsoles LANGUAGES C CXX RC)
 
 if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8 AND WIN32) # This check is broken on linux+clang-cl
   message(FATAL_ERROR "Use a 64-bit generator/toolchain (x64).")
@@ -24,9 +24,12 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/ClientSources.cmake")
 
 list(TRANSFORM MINECRAFT_WORLD_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/Minecraft.World/")
 list(TRANSFORM MINECRAFT_CLIENT_SOURCES PREPEND "${CMAKE_CURRENT_SOURCE_DIR}/Minecraft.Client/")
-list(APPEND MINECRAFT_CLIENT_SOURCES
-  "${CMAKE_CURRENT_SOURCE_DIR}/Minecraft.Client/Xbox/MinecraftWindows.rc"
-)
+
+if(NOT CMAKE_CROSSCOMPILING) # broken when cross compiling (can't include sdkddkver.h)
+  list(APPEND MINECRAFT_CLIENT_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/Minecraft.Client/Xbox/MinecraftWindows.rc"
+  )
+endif()
 
 add_library(MinecraftWorld STATIC ${MINECRAFT_WORLD_SOURCES})
 target_include_directories(MinecraftWorld PRIVATE
@@ -36,6 +39,7 @@ target_include_directories(MinecraftWorld PRIVATE
 target_compile_definitions(MinecraftWorld PRIVATE
   $<$<CONFIG:Debug>:_LARGE_WORLDS;_DEBUG_MENUS_ENABLED;_DEBUG;_LIB;_CRT_NON_CONFORMING_SWPRINTFS;_CRT_SECURE_NO_WARNINGS;_WINDOWS64>
   $<$<NOT:$<CONFIG:Debug>>:_LARGE_WORLDS;_DEBUG_MENUS_ENABLED;_LIB;_CRT_NON_CONFORMING_SWPRINTFS;_CRT_SECURE_NO_WARNINGS;_WINDOWS64>
+  $<$<BOOL:CMAKE_CROSSCOMPILING>:LCE_CROSSCOMP>
 )
 if(MSVC)
   configure_msvc_target(MinecraftWorld)
@@ -51,6 +55,7 @@ target_include_directories(MinecraftClient PRIVATE
 target_compile_definitions(MinecraftClient PRIVATE
   $<$<CONFIG:Debug>:_LARGE_WORLDS;_DEBUG_MENUS_ENABLED;_DEBUG;_CRT_NON_CONFORMING_SWPRINTFS;_CRT_SECURE_NO_WARNINGS;_WINDOWS64>
   $<$<NOT:$<CONFIG:Debug>>:_LARGE_WORLDS;_DEBUG_MENUS_ENABLED;_CRT_NON_CONFORMING_SWPRINTFS;_CRT_SECURE_NO_WARNINGS;_WINDOWS64>
+  $<$<BOOL:CMAKE_CROSSCOMPILING>:LCE_CROSSCOMP>
 )
 if(MSVC)
   configure_msvc_target(MinecraftClient)
