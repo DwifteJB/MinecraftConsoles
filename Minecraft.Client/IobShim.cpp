@@ -1,5 +1,7 @@
 // Original file is iob_shim.asm
 // Rewritten in C because the build system breaks on linux-windows crosscomp with this
+// rm: __declspec(naked) is seemingly(?) not working on x86_64 (atleast via wine); use __attribute__((naked)) instead.
+
 #if 0
 .code
 EXTRN __acrt_iob_func:PROC
@@ -14,7 +16,13 @@ END
 
 #include <cstdio>
 
-extern "C" FILE* __cdecl __iob_func ( void ) {
-  static FILE iob [ ] = { *stdin, *stdout, *stderr };
-  return iob;
+extern "C" FILE* __cdecl __acrt_iob_func(unsigned index);
+
+extern "C" __attribute__((naked)) FILE* __cdecl __iob_func(void) {
+    __asm__(
+        ".intel_syntax noprefix\n\t"
+        "mov ecx, 0\n\t"
+        "jmp __acrt_iob_func\n\t"
+        ".att_syntax prefix"
+    );
 }
